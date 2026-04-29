@@ -27,16 +27,20 @@ try {
 }
     const videoPath = path.join(tempDir, `video_${Date.now()}.mp4`);
 
-    // Stratégies de téléchargement
+    // ==================== STRATÉGIES DE TÉLÉCHARGEMENT ROBUSTES ====================
     const cookiesPath = path.join(process.cwd(), 'cookies.txt');
     const hasCookies = fs.existsSync(cookiesPath);
 
     const strategies = [
+      // 1. Avec cookies.txt (méthode la plus fiable si présent)
       hasCookies ? `yt-dlp --cookies "${cookiesPath}" --no-warnings --no-playlist --max-filesize 200M -f "best[height<=720]/best" -o "${videoPath}" "${url}"` : '',
-      `yt-dlp --cookies-from-browser chrome --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" --extractor-args "youtube:player_client=android,web" --no-warnings --no-playlist --max-filesize 200M -f "best[height<=720]/best" -o "${videoPath}" "${url}"`,
-      `yt-dlp --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" --extractor-args "youtube:player_client=android,web" --no-warnings --no-playlist --max-filesize 250M -o "${videoPath}" "${url}"`
-    ].filter(Boolean);
 
+      // 2. Avec cookies du navigateur Chrome
+      `yt-dlp --cookies-from-browser chrome --no-warnings --no-playlist --max-filesize 200M -f "best[height<=720]/best" -o "${videoPath}" "${url}"`,
+
+      // 3. Fallback ultra permissif
+      `yt-dlp --no-warnings --no-playlist --max-filesize 250M -o "${videoPath}" "${url}"`
+    ].filter(Boolean); // Supprime les entrées vides
     let success = false;
 
     for (let i = 0; i < strategies.length; i++) {
