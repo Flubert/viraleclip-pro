@@ -16,8 +16,8 @@ export async function POST(req: NextRequest) {
 
     console.log(`📥 Traitement du lien : ${url}`);
 
-    const tempDir = path.join(process.cwd(), 'temp');
-    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+   const tempDir = path.join(process.cwd(), 'temp');
+if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
     const videoPath = path.join(tempDir, `video_${Date.now()}.mp4`);
 
