@@ -15,10 +15,15 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(`📥 Traitement du lien : ${url}`);
-
-   const tempDir = path.join(process.cwd(), 'temp');
-if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
-
+// Création robuste du dossier temp (compatible Vercel Serverless)
+const tempDir = path.join(process.cwd(), 'temp');
+try {
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
+  }
+} catch (err: any) {
+  console.error("Erreur lors de la création du dossier temp:", err.message);
+}
     const videoPath = path.join(tempDir, `video_${Date.now()}.mp4`);
 
     // Stratégies de téléchargement
