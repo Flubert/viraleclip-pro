@@ -27,40 +27,46 @@ try {
 }
     const videoPath = path.join(tempDir, `video_${Date.now()}.mp4`);
 
-    // ==================== STRATÉGIES DE TÉLÉCHARGEMENT ROBUSTES ====================
+       // ==================== STRATÉGIES DE TÉLÉCHARGEMENT TRÈS ROBUSTES (2026) ====================
     const cookiesPath = path.join(process.cwd(), 'cookies.txt');
     const hasCookies = fs.existsSync(cookiesPath);
 
     const strategies = [
-      // 1. Avec cookies.txt (méthode la plus fiable si présent)
+      // 1. Avec cookies.txt si présent
       hasCookies ? `yt-dlp --cookies "${cookiesPath}" --no-warnings --no-playlist --max-filesize 200M -f "best[height<=720]/best" -o "${videoPath}" "${url}"` : '',
 
-      // 2. Avec cookies du navigateur Chrome
-      `yt-dlp --cookies-from-browser chrome --no-warnings --no-playlist --max-filesize 200M -f "best[height<=720]/best" -o "${videoPath}" "${url}"`,
+      // 2. Avec cookies du navigateur Chrome + user-agent renforcé
+      `yt-dlp --cookies-from-browser chrome --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" --extractor-args "youtube:player_client=android,web" --no-warnings --no-playlist --max-filesize 200M -f "best[height<=720]/best" -o "${videoPath}" "${url}"`,
 
-      // 3. Fallback ultra permissif
-      `yt-dlp --no-warnings --no-playlist --max-filesize 250M -o "${videoPath}" "${url}"`
-    ].filter(Boolean); // Supprime les entrées vides
+      // 3. Fallback sans cookies très permissif
+      `yt-dlp --no-warnings --no-playlist --max-filesize 250M --extractor-args "youtube:player_client=android,web" -o "${videoPath}" "${url}"`,
+
+      // 4. Dernier recours ultra permissif
+      `yt-dlp --no-warnings --no-playlist --max-filesize 300M -o "${videoPath}" "${url}"`
+    ].filter(Boolean);
+
     let success = false;
+    let lastError = '';
 
     for (let i = 0; i < strategies.length; i++) {
       try {
-        console.log(`Tentative de téléchargement ${i + 1}/3...`);
-        execSync(strategies[i], { stdio: 'inherit', encoding: 'utf8' });
-
-        if (fs.existsSync(videoPath)) {
+        console.log(`Tentative de téléchargement ${i + 1}/${strategies.length}...`);
+        execSync(strategies[i], { stdio: 'inherit', timeout: 90000 });
+        
+        if (fs.existsSync(videoPath) && fs.statSync(videoPath).size > 100000) {
           success = true;
           console.log("✅ Téléchargement réussi !");
           break;
         }
-      } catch (e) {
+      } catch (err: any) {
+        lastError = err.message || err.toString();
         console.log(`Tentative ${i + 1} échouée.`);
       }
     }
 
     if (!success || !fs.existsSync(videoPath)) {
       throw new Error(
-        hasCookies
+        hasCookies 
           ? "Impossible de télécharger la vidéo. Vos cookies YouTube sont peut-être expirés. Essayez de réexporter cookies.txt."
           : "Impossible de télécharger la vidéo. Essayez d'exporter vos cookies YouTube dans un fichier cookies.txt à la racine du projet."
       );
